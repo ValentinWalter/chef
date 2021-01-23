@@ -1,0 +1,22 @@
+{
+  "name": "chef",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/main.js",
+  "scripts": {
+    "test": "export $(cat .env | xargs) && tsc",
+    "start": "export $(cat .env | xargs) && tsc && node build/main.js"
+  },
+  "keywords": [],
+  "author": "Walter",
+  "license": "ISC",
+  "dependencies": {
+    "@discordjs/opus": "github:discordjs/opus",
+    "@types/node": "^14.14.22",
+    "airtable": "^0.10.1",
+    "csv-parse": "^4.15.0",
+    "discord.js": "^12.5.1",
+    "dotenv": "^8.2.0",
+    "ytdl-core": "^4.4.4"
+  }
+}
