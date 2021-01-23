@@ -4,8 +4,9 @@
   "description": "",
   "main": "build/main.js",
   "scripts": {
-    "test": "export $(cat .env | xargs) && tsc",
-    "start": "export $(cat .env | xargs) && tsc && node build/main.js"
+    "test": "tsc",
+    "export_env": "export $(cat .env | xargs)",
+    "start": "tsc && node build/main.js"
   },
   "keywords": [],
   "author": "Walter",
