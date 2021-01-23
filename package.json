@@ -4,9 +4,11 @@
   "description": "",
   "main": "build/main.js",
   "scripts": {
-    "test": "tsc",
     "export_env": "export $(cat .env | xargs)",
-    "start": "tsc && node build/main.js"
+    "start": "node build/main.js",
+    "postinstall": "tsc",
+    "watch-node": "nodemon dist/index.js",
+    "watch-ts": "tsc -w"
   },
   "keywords": [],
   "author": "Walter",
@@ -19,5 +21,8 @@
     "discord.js": "^12.5.1",
     "dotenv": "^8.2.0",
     "ytdl-core": "^4.4.4"
+  },
+  "engines": {
+    "node": "12.18.4"
   }
 }
