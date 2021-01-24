@@ -2,8 +2,6 @@ import * as dotenv from "dotenv"
 dotenv.config()
 
 import Discord from "discord.js"
-import Cleanup from "node-cleanup"
-
 import * as Menu from "./menu"
 import * as Voice from "./voice"
 import * as Casino from "./casino"
@@ -23,7 +21,7 @@ class User {
 
 chef.once("ready", () => {
     console.log("Ready!")
-    chef.user?.setStatus("online")
+    chef.user?.setPresence({ activity: { name: "mit schulzi" }, status: "online" })
 })
 
 chef.on("message", async message => {
@@ -127,6 +125,6 @@ chef.login(token)
     })
 
 process.on("SIGINT", async () => {
-    await chef.user?.setStatus("dnd")
+    await chef.user?.setPresence({ activity: { name: "under maintenance" }, status: "dnd" })
     process.exit(0)
 })
