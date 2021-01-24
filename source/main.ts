@@ -61,7 +61,6 @@ chef.on("message", async message => {
                 .addField("Memory Total", process.memoryUsage().heapTotal, true)
                 // .addField("Resource Usage", process.resourceUsage().)
                 .addField("CPU Usage", process.cpuUsage().user)
-                .addField("Domain", process.domain)
             message.channel.send(embed)
             break
         case "play":
