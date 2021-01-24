@@ -55,7 +55,7 @@ chef.on("message", async message => {
             break
         case "status":
             let embed = new Discord.MessageEmbed()
-                .setTitle(`Process ${process.pid}`)
+                .setTitle(`${process.title} ${process.pid}`)
                 .addField("Platform", process.platform)
                 .addField("Memory Usage", process.memoryUsage().heapUsed, true)
                 .addField("Memory Total", process.memoryUsage().heapTotal, true)
@@ -119,11 +119,4 @@ chef.on("voiceStateUpdate", (previousState, updatedState) => {
 // }
 
 chef.login(token)
-    .catch(error => {
-        console.error(`discord.js: ${error.message}`)
-    })
-
-process.on("SIGINT", async () => {
-    await chef.user?.setPresence({ activity: { name: "under maintenance" }, status: "dnd" })
-    process.exit(0)
-})
+    .catch(console.error)
