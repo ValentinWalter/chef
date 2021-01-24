@@ -19,8 +19,8 @@ export async function createImageWithText(text: string) {
     // Actually fill the text with a solid color
     let lines = wrap(text, 780, ctx)
     let wrapped = lines.join("\n")
-    let metrics = ctx.measureText(wrapped);
-    let fontHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+    let metrics = ctx.measureText(wrapped)
+    let fontHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
     ctx.fillText(wrapped, canvas.width / 2, (canvas.height - fontHeight) / 2)
     ctx.strokeText(wrapped, canvas.width / 2, (canvas.height - fontHeight) / 2)
 
@@ -46,7 +46,7 @@ function wrap(text: string, maxWidth: number, ctx: Canvas.CanvasRenderingContext
     var currentLine = words[0]
 
     for (var i = 1; i < words.length; i++) {
-        var word = words[i];
+        var word = words[i]
         var width = ctx.measureText(currentLine + " " + word).width
         if (width < maxWidth) {
             currentLine += " " + word
