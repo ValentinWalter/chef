@@ -1,4 +1,5 @@
-import { Message, MessageEmbed } from "discord.js"
+import * as Discord from "discord.js"
+import { prefix, users } from "./main"
 const base = require('airtable').base('appVqJApVQAuLIHJm')
 
 // category: [items]
@@ -17,7 +18,7 @@ class MenuItem {
 }
 
 // Parse menu.csv
-export function sendMenu(message: Message) {
+export function sendMenu(message: Discord.Message) {
     base("Speisekarte")
         .select({ view: "Winter Saison" })
         .eachPage((records: any[], fetchNextPage: () => void) => {
@@ -39,13 +40,13 @@ export function sendMenu(message: Message) {
             fetchNextPage()
         }, (error: any) => {
             if (!error) {
-                var embed = new MessageEmbed()
+                var embed = new Discord.MessageEmbed()
                     .setTitle("Saisonale Speisekarte")
                     .setColor(0xb65e16)
                     .setDescription("Mit Liebe vom Chef.")
 
                 for (let key of menu.keys()) {
-                    let value = menu.get(key)
+                    let value = menu.get(key)!
                         .map(item => {
                             return `${item.name} **${item.price}€**`
                         })
@@ -63,47 +64,68 @@ export function sendMenu(message: Message) {
 }
 
 // API
-export function getCheck(message: Message) {
+export function getCheck(message: Discord.Message) {
     let _items = tabs.get(message.author.id)
     if (_items) {
         let items = _items
             .map(item => { return ` • ${item.name} **${item.price}€**` })
             .join("\n")
-        let sum = _items
+        var sum = _items
             .map(item => { return item.price })
             .reduce((result, current) => {
                 return result + current
             })
+            * 1.08
 
-        let voiceChannel = message.member.voice.channel.name
+        if (!message.member) return
+        let voiceChannel = message.member.voice.channel
 
-        var embed = new MessageEmbed()
+        var embed = new Discord.MessageEmbed()
             .setTitle("Restaurant Wucherwald Promenade")
             .setColor(0xb65e16)
-            .setDescription(`*Rechnung für ${message.member.nickname}*`)
+            .setDescription(`*Rechnung für ${message.member.displayName}*`)
 
         if (voiceChannel)
-            embed.addField("Tisch", voiceChannel, true)
+            embed.addField("Tisch", voiceChannel.name, true)
+        else
+            embed.addField("Tisch", Math.floor(Math.random() * 5), true)
 
         embed
             .addField("Kellner", "Schulz", true)
             .addField("Bestellung", items)
-            .addField("Total", `**${(sum * 1.08).toFixed(2)}€** (Inkl. 8% MwSt.)`)
+            .addField("Total", `**${sum.toFixed(2)}€** (Inkl. 8% MwSt.)`)
             .setFooter("Chef dankt für Ihren Besuch!")
             .setTimestamp()
 
         message.channel.send(embed)
+
+        let user = users.get(message.author.id)
+        if (user) {
+            if (user.balance > sum) {
+                user.balance -= sum
+                users.set(message.author.id, user)
+                let embed = new Discord.MessageEmbed()
+                    .setTitle("Zahlung erfolgreich.")
+                    .setColor(0x00E500)
+                // .setDescription(`${getBalance(message.author.id).toFixed(2)}€ übrig.`)
+                message.channel.send(embed)
+            } else {
+                insufficientBalance(message.channel)
+            }
+        } else {
+            insufficientBalance(message.channel)
+        }
     } else {
-        let embed = new MessageEmbed()
+        let embed = new Discord.MessageEmbed()
             .setTitle("Keine Rechnung vorhanden.")
             .setColor(0xff0000)
-            .setFooter("Chef ermutigt sie sein Essen zu kaufen!")
+            .setDescription(`Bestell Essen mit \`${prefix}bestell …\` (#speisekarte)!`)
 
         message.channel.send(embed)
     }
 }
 
-export function order(item: string, message: Message) {
+export function order(item: string, message: Discord.Message) {
     base("Speisekarte")
         .select({ view: "Winter Saison" })
         .eachPage((records: any[], fetchNextPage: () => void) => {
@@ -136,4 +158,14 @@ export function order(item: string, message: Message) {
                 return
             }
         })
+}
+
+function insufficientBalance(channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel) {
+    let embed = new Discord.MessageEmbed()
+        .setTitle("Du hast nicht genügend Geld.")
+        .setDescription("Verdien Geld in dem du mit dem Server interagierst.")
+        .setColor(0xff0000)
+        .addField("1", "1€ für alle 10 sekunden in einem beliebigen Voice Channel.")
+        .addField("2", "10€ für eine Nachricht jede Minute.")
+    channel.send(embed)
 }

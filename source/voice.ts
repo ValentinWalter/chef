@@ -22,8 +22,8 @@ export function leave(message: Message) {
 }
 
 export function play(link: string, message: Message) {
-    console.log("play: user intent")
     // Queue link
+    if (!message.guild) return
     const guildID = message.guild.id
     if (!queues[guildID]) {
         queues[guildID] = {
@@ -51,6 +51,7 @@ export function play(link: string, message: Message) {
     }
 
     // Check if joinable
+    if (!message.member) return
     const voiceChannel = message.member.voice.channel
     if (!voiceChannel) {
         message.reply("du musst in einem voice channel sein.")
@@ -58,11 +59,11 @@ export function play(link: string, message: Message) {
         return
     }
 
-    if (voiceChannel.full) {
-        message.reply(`${voiceChannel.name} ist voll.`)
-        console.log("voice channel full")
-        return
-    }
+    // if (voiceChannel.full) {
+    //     message.reply(`${voiceChannel.name} ist voll.`)
+    //     console.log("voice channel full")
+    //     return
+    // }
 
     if (!voiceChannel.joinable) {
         message.reply(`${voiceChannel.name} ist nicht joinable.`)
