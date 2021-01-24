@@ -1,5 +1,6 @@
-import Discord from "discord.js"
+import Discord, { MessageEmbed } from "discord.js"
 import Colors from "../Utilities/colors"
+import Database from "../database"
 import * as Chef from "../main"
 import Airtable from "airtable"
 
@@ -29,15 +30,14 @@ export default class Restaurant {
 			for (const key of menu.keys()) {
 				const value = Array.from(menu.get(key)!)
 					.map((item) => {
-						return `${item.name} **${item.price}€**`
+						return `• ${item.name} **${item.price}€**`
 					})
 					.join("\n")
 				embed.addField(key, value)
 			}
 
 			return embed
-		}
-		catch (error) {
+		} catch (error) {
 			console.error(error)
 			return new Discord.MessageEmbed().setTitle(error).setColor(Colors.error)
 		}
@@ -46,11 +46,6 @@ export default class Restaurant {
 	public getCheck(message: Discord.Message) {
 		const _items = this.tabs.get(message.author.id)
 		if (_items) {
-			const items = _items
-				.map((item) => {
-					return ` • ${item.name} **${item.price}€**`
-				})
-				.join("\n")
 			const sum =
 				_items
 					.map((item) => {
@@ -60,6 +55,14 @@ export default class Restaurant {
 						return result + current
 					}) * 1.08
 
+			if (sum > 50) _items.push(new MenuItem("Schnaps", 0))
+
+			const items = _items
+				.map((item) => {
+					return ` • ${item.name} **${item.price}€**`
+				})
+				.join("\n")
+
 			if (!message.member) return
 			const voiceChannel = message.member.voice.channel
 
@@ -67,11 +70,11 @@ export default class Restaurant {
 				.setTitle("Restaurant Wucherwald Promenade")
 				.setColor(0xb65e16)
 				.setDescription(`*Rechnung für ${message.member.displayName}*`)
+				.setTimestamp()
 
 			if (voiceChannel) {
 				menuEmbed.addField("Tisch", voiceChannel.name, true)
-			}
-			else {
+			} else {
 				menuEmbed.addField("Tisch", Math.floor(Math.random() * 5), true)
 			}
 
@@ -79,31 +82,31 @@ export default class Restaurant {
 				.addField("Kellner", "Schulz", true)
 				.addField("Bestellung", items)
 				.addField("Total", `**${sum.toFixed(2)}€** (Inkl. 8% MwSt.)`)
-				.setFooter("Chef dankt für Ihren Besuch!")
-				.setTimestamp()
+
+			if (sum > 50) {
+				menuEmbed.setFooter("Chef lässt grüßen!")
+			} else {
+				menuEmbed.setFooter("Chef dankt für Ihren Besuch!")
+			}
 
 			message.channel.send(menuEmbed)
 
-			const user = Chef.users.get(message.author.id)
-			if (user) {
-				if (user.balance > sum) {
-					user.balance -= sum
-					Chef.users.set(message.author.id, user)
+			const balance = Database.getBalance(message.author.id)
+			if (balance) {
+				if (balance > sum) {
+					Database.addToBalance(-sum, message.author.id)
 					const embed = new Discord.MessageEmbed()
 						.setTitle("Zahlung erfolgreich.")
 						.setColor(0x00e500)
-					// .setDescription(`${getBalance(message.author.id).toFixed(2)}€ übrig.`)
+						.setDescription(`${(balance - sum).toFixed(2)} Gulden übrig.`)
 					message.channel.send(embed)
-				}
-				else {
+				} else {
 					insufficientBalance(message.channel)
 				}
-			}
-			else {
+			} else {
 				insufficientBalance(message.channel)
 			}
-		}
-		else {
+		} else {
 			const embed = new Discord.MessageEmbed()
 				.setTitle("Keine Rechnung vorhanden.")
 				.setColor(Colors.error)
@@ -121,7 +124,7 @@ export default class Restaurant {
 			.eachPage(
 				(records: any[], fetchNextPage: () => void) => {
 					let foundItem = false
-					records.forEach(record => {
+					records.forEach((record) => {
 						const name: string = record.get("Gericht")
 						if (name.toLowerCase() == item.toLowerCase()) {
 							const price: number = record.get("Preis")
@@ -186,8 +189,7 @@ function fetchMenu() {
 						let items = menu.get(category)
 						if (items) {
 							items.add(item)
-						}
-						else {
+						} else {
 							items = new Set([item])
 						}
 
@@ -199,8 +201,7 @@ function fetchMenu() {
 				(error) => {
 					if (error) {
 						reject(error)
-					}
-					else {
+					} else {
 						cachedMenu = menu
 						resolve(menu)
 					}
@@ -214,9 +215,12 @@ function insufficientBalance(
 ) {
 	const embed = new Discord.MessageEmbed()
 		.setTitle("Du hast nicht genügend Geld.")
-		.setDescription("Verdien Geld in dem du mit dem Server interagierst.")
+		.setDescription("broke ass mf")
 		.setColor(Colors.error)
-		.addField("1", "1€ für alle 10 sekunden in einem beliebigen Voice Channel.")
-		.addField("2", "10€ für eine Nachricht jede Minute.")
+		.addField(
+			"Interaktion mit Server",
+			"• 10 Gulden für eine Nachricht jede Minute.\n• Gulde für alle 10 sekunden in einem beliebigen Voice Channel.",
+		)
+		.addField("Casino", "• ±∞ Gulden mit `?coinflip [wette]`.")
 	channel.send(embed)
 }

@@ -4,6 +4,7 @@ dotenv.config()
 import Discord from "discord.js"
 import Restaurant from "./Restaurant/restaurant"
 import Casino from "./Casino/casino"
+import Database from "./database"
 import ProcessUtility from "./Utilities/process"
 import * as Voice from "./Voice/voice"
 import * as Stupidshit from "./Utilities/stupidshit"
@@ -13,29 +14,26 @@ export const restaurant = new Restaurant()
 export const casino = new Casino()
 export const prefix = "?"
 
-export const users = new Map<string, User>()
-class User {
-	balance: number
-	constructor(balance = 100) {
-		this.balance = balance
-	}
-}
-
 chef.once("ready", () => {
 	console.log("Ready!")
-	chef.user?.setPresence({ activity: { name: "mit schulzi" }, status: "online" })
+	chef.user?.setPresence({
+		activity: { name: "mit schulzi" },
+		status: "online",
+	})
 })
 
-chef.on("message", async message => {
+chef.on("message", async (message) => {
 	// stupidshit
-	if (message.author.id == "769275223747854376" && message.attachments.size == 0) {
+	if (
+		message.author.id == "769275223747854376" &&
+		message.attachments.size == 0
+	) {
 		// Leonard
 		const attachment = await Stupidshit.createImageWithText(message.content)
 		message.delete()
 		message.channel.send(attachment)
 		return
-	}
-	else if (message.author.id == "338408417645428736") {
+	} else if (message.author.id == "338408417645428736") {
 		// Bonez
 		const attachment = await Stupidshit.cracker()
 		message.channel.send(attachment)
@@ -43,14 +41,11 @@ chef.on("message", async message => {
 	}
 
 	if (!message.content.startsWith(prefix)) {
-		// addToBalance(Math.floor(Math.random() * 10), message.author.id)
+		Database.addToBalance(Math.floor(Math.random() * 10), message.author.id)
 		return
 	}
 
-	const args = message.content
-		.substring(prefix.length)
-		.toLowerCase()
-		.split(" ")
+	const args = message.content.substring(prefix.length).toLowerCase().split(" ")
 
 	switch (args[0]) {
 	case "ping":
@@ -82,13 +77,13 @@ chef.on("message", async message => {
 		break
 	}
 	case "gulden":
-		// let balance = getBalance(message.author.id)
-		// let embed = new Discord.MessageEmbed()
-		//     .setTitle(`${balance.toFixed(2)}€`)
-		//     .setColor(0x00FFFF)
-		//     .setDescription(`Des ${message.member.nickname}s Geldsack.`)
-		// // .setThumbnail(message.author.avatarURL())
-		// message.channel.send(embed)
+		const balance = Database.getBalance(message.author.id)
+		const embed = new Discord.MessageEmbed()
+			.setTitle(`${balance.toFixed(2)}€`)
+			.setColor(0x00ffff)
+			.setDescription(`Des ${message.member?.displayName}s Gulden.`)
+			// .setThumbnail(message.author.avatarURL())
+		message.channel.send(embed)
 		break
 	case "coinflip":
 		casino.coinflip(Math.round(Number(args[1])), message)
@@ -101,5 +96,4 @@ chef.on("message", async message => {
 	}
 })
 
-chef.login(process.env.DISCORD_CHEF_CLIENT_ID)
-	.catch(console.error)
+chef.login(process.env.DISCORD_CHEF_CLIENT_ID).catch(console.error)
