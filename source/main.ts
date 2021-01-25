@@ -54,7 +54,7 @@ chef.on("message", async (message) => {
 		break
 	}
 	case "play":
-		Voice.play(args[1], message)
+		Voice.play(args.slice(1, args.length).join(" "), message)
 		break
 	case "leave":
 		Voice.leave(message)
