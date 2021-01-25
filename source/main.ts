@@ -29,10 +29,7 @@ chef.on("message", async (message) => {
 		message.attachments.size == 0
 	) {
 		// Leonard
-		const attachment = await Stupidshit.createImageWithText(message.content)
-		message.delete()
-		message.channel.send(attachment)
-		return
+		// return
 	} else if (message.author.id == "338408417645428736") {
 		// Bonez
 		const attachment = await Stupidshit.cracker()
@@ -72,8 +69,23 @@ chef.on("message", async (message) => {
 	}
 	case "bestell": {
 		// combine all arguments
-		const item = args.slice(1, args.length).join(" ")
-		restaurant.order(item, message)
+		const order = args.slice(1, args.length).join(" ")
+		const items = order.split(", ")
+		if (order.toLowerCase() == "den thymian") {
+			const thymian = [
+				"Käsespätzle",
+				"Lasagne",
+				"Schnitzel",
+				"Whiskey",
+				"Crepes",
+				"Eis",
+				"Salatplatte",
+				"Bratkartoffeln",
+			]
+			restaurant.order(thymian, message)
+		} else {
+			restaurant.order(items, message)
+		}
 		break
 	}
 	case "gulden":
@@ -91,6 +103,13 @@ chef.on("message", async (message) => {
 	case "cf":
 		casino.coinflip(Math.round(Number(args[1])), message)
 		break
+	case "homo": {
+		const text = args.slice(1, args.length).join(" ")
+		const attachment = await Stupidshit.createImageWithText(text)
+		message.delete()
+		message.channel.send(attachment)
+		break
+	}
 	default:
 		break
 	}

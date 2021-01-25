@@ -1,3 +1,3 @@
 export default class Colors {
-	static error = 0xff0000
+    static error = 0xff0000
 }

@@ -55,7 +55,7 @@ export default class Restaurant {
 						return result + current
 					}) * 1.08
 
-			if (sum > 50) _items.push(new MenuItem("Schnaps", 0))
+			if (sum > 50) _items.push(new MenuItem("Schnaps aufs Haus", 0))
 
 			const items = _items
 				.map((item) => {
@@ -118,15 +118,17 @@ export default class Restaurant {
 		}
 	}
 
-	public order(item: string, message: Discord.Message) {
+	public order(items: string[], message: Discord.Message) {
 		airtableBase("Speisekarte")
 			.select({ view: "Winter Saison" })
 			.eachPage(
-				(records: any[], fetchNextPage: () => void) => {
+				(records, fetchNextPage) => {
 					let foundItem = false
 					records.forEach((record) => {
 						const name: string = record.get("Gericht")
-						if (name.toLowerCase() == item.toLowerCase()) {
+						const _items = items.map((item) => item.toLowerCase())
+						const set = new Set(_items)
+						if (set.has(name.toLowerCase())) {
 							const price: number = record.get("Preis")
 							const menuItem = new MenuItem(name, price)
 							let items = this.tabs.get(message.author.id)
@@ -135,7 +137,7 @@ export default class Restaurant {
 
 							this.tabs.set(message.author.id, items)
 							message.react("👌")
-							message.channel.send(`chef dankt für die ${price}€`)
+							message.channel.send(`chef dankt für die ${price}€ (${name})`)
 							foundItem = true
 							return
 						}
