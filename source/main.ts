@@ -2,121 +2,98 @@ import * as dotenv from "dotenv"
 dotenv.config()
 
 import Discord from "discord.js"
-import * as Menu from "./menu"
-import * as Voice from "./voice"
-import * as Casino from "./casino"
-import * as Stupidshit from "./stupidshit"
+import Restaurant from "./Restaurant/restaurant"
+import Casino from "./Casino/casino"
+import Database from "./database"
+import ProcessUtility from "./Utilities/process"
+import * as Voice from "./Voice/voice"
+import * as Stupidshit from "./Utilities/stupidshit"
 
 export const chef = new Discord.Client()
-export const token = process.env.DISCORD_CHEF_CLIENT_ID
+export const restaurant = new Restaurant()
+export const casino = new Casino()
 export const prefix = "?"
 
-export var users = new Map<string, User>()
-class User {
-    balance: number
-    constructor(balance: number = 100) {
-        this.balance = balance
-    }
-}
-
 chef.once("ready", () => {
-    console.log("Ready!")
-    chef.user?.setPresence({ activity: { name: "mit schulzi" }, status: "online" })
+	console.log("Ready!")
+	chef.user?.setPresence({
+		activity: { name: "mit schulzi" },
+		status: "online",
+	})
 })
 
-chef.on("message", async message => {
-    // stupidshit
-    if (message.author.id == "769275223747854376" && message.attachments.size == 0) {
-        // Leonard
-        let attachment = await Stupidshit.createImageWithText(message.content)
-        message.delete()
-        message.channel.send(attachment)
-        return
-    } else if (message.author.id == "338408417645428736") {
-        // Bonez
-        let attachment = await Stupidshit.cracker()
-        message.channel.send(attachment)
-        return
-    }
+chef.on("message", async (message) => {
+	// stupidshit
+	if (
+		message.author.id == "769275223747854376" &&
+		message.attachments.size == 0
+	) {
+		// Leonard
+		const attachment = await Stupidshit.createImageWithText(message.content)
+		message.delete()
+		message.channel.send(attachment)
+		return
+	} else if (message.author.id == "338408417645428736") {
+		// Bonez
+		const attachment = await Stupidshit.cracker()
+		message.channel.send(attachment)
+		return
+	}
 
-    if (!message.content.startsWith(prefix)) {
-        // addToBalance(Math.floor(Math.random() * 10), message.author.id)
-        return
-    }
+	if (!message.content.startsWith(prefix)) {
+		Database.addToBalance(Math.floor(Math.random() * 10), message.author.id)
+		return
+	}
 
-    let args = message.content
-        .substring(prefix.length)
-        .toLowerCase()
-        .split(" ")
+	const args = message.content.substring(prefix.length).toLowerCase().split(" ")
 
-    switch (args[0]) {
-        case "ping":
-            message.channel.send("pong")
-            break
-        case "status":
-            let embed = new Discord.MessageEmbed()
-                .setTitle(`${process.title} ${process.pid}`)
-                .addField("Platform", process.platform)
-                .addField("Memory Usage", process.memoryUsage().heapUsed, true)
-                .addField("Memory Total", process.memoryUsage().heapTotal, true)
-                // .addField("Resource Usage", process.resourceUsage().)
-                .addField("CPU Usage", process.cpuUsage().user)
-            message.channel.send(embed)
-            break
-        case "play":
-            Voice.play(args[1], message)
-            break
-        case "leave":
-            Voice.leave(message)
-            break
-        case "rechnung":
-            Menu.getCheck(message)
-            break
-        case "speisekarte":
-            Menu.sendMenu(message)
-            break
-        case "bestell":
-            // combine all arguments
-            let item = args.slice(1, args.length).join(" ")
-            Menu.order(item, message)
-            break
-        case "gulden":
-            // let balance = getBalance(message.author.id)
-            // let embed = new Discord.MessageEmbed()
-            //     .setTitle(`${balance.toFixed(2)}€`)
-            //     .setColor(0x00FFFF)
-            //     .setDescription(`Des ${message.member.nickname}s Geldsack.`)
-            // // .setThumbnail(message.author.avatarURL())
-            // message.channel.send(embed)
-            break
-        case "coinflip":
-            Casino.coinflip(Math.round(Number(args[1])), message)
-            break
-        case "cf":
-            Casino.coinflip(Math.round(Number(args[1])), message)
-            break
-        default:
-            break
-    }
+	switch (args[0]) {
+	case "ping":
+		message.channel.send("pong")
+		break
+	case "status": {
+		const processInfo = new ProcessUtility().embed()
+		message.channel.send(processInfo)
+		break
+	}
+	case "play":
+		Voice.play(args[1], message)
+		break
+	case "leave":
+		Voice.leave(message)
+		break
+	case "rechnung":
+		restaurant.getCheck(message)
+		break
+	case "speisekarte": {
+		const menu = await restaurant.menu()
+		message.channel.send(menu)
+		break
+	}
+	case "bestell": {
+		// combine all arguments
+		const item = args.slice(1, args.length).join(" ")
+		restaurant.order(item, message)
+		break
+	}
+	case "gulden":
+		const balance = Database.getBalance(message.author.id)
+		const embed = new Discord.MessageEmbed()
+			.setTitle(`${balance.toFixed(2)}€`)
+			.setColor(0x00ffff)
+			.setDescription(`Des ${message.member?.displayName}s Gulden.`)
+			// .setThumbnail(message.author.avatarURL())
+		message.channel.send(embed)
+		break
+	case "coinflip":
+		casino.coinflip(Math.round(Number(args[1])), message)
+		break
+	case "cf":
+		casino.coinflip(Math.round(Number(args[1])), message)
+		break
+	default:
+		break
+	}
 })
 
-chef.on("voiceStateUpdate", (previousState, updatedState) => {
-    // let userID = previousState.member.user.id
-    // if (!previousState.channel && updatedState.channel) {
-    //     addToBalance(Math.floor(Math.random() * 100), userID)
-    // }
-
-    // function addAmountEvery(amount: number, interval: number) {
-    //     after(interval)
-    //     .then()
-    // }
-})
-
-// function after(seconds: number) {
-//     return new Promise(r => {
-//         setTimeout(r, seconds);
-//     })
-// }
-
-chef.login(token)
-    .catch(console.error)
+chef.login(process.env.DISCORD_CHEF_CLIENT_ID).catch(console.error)
