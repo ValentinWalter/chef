@@ -116,3 +116,4 @@ chef.on("message", async (message) => {
 })
 
 chef.login(process.env.DISCORD_CHEF_CLIENT_ID).catch(console.error)
+// chef.on("debug", console.log)
