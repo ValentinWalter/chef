@@ -1,5 +1,5 @@
 import { Message, StreamDispatcher, VoiceConnection } from "discord.js"
-import ytdl from "ytdl-core-discord"
+import ytdl from "ytdl-core"
 
 const queues: { [guild: string]: Queue } = {}
 let dispatcher: StreamDispatcher
@@ -73,7 +73,7 @@ export function play(link: string, message: Message) {
 	voiceChannel
 		.join()
 		.then(async (connection) => {
-			const stream = await ytdl(link)
+			const stream = ytdl(link)
 			connection.play(stream)
 			message.react("👍")
 			console.log("join voice channel: user intent")
@@ -86,19 +86,19 @@ export function play(link: string, message: Message) {
 		})
 }
 
-async function connect(connection: VoiceConnection, queue: Queue) {
-	const link = queue.links.shift()
-	if (!link) return
-	const stream = await ytdl(link, { filter: "audioonly" })
-	queue.dispatcher = connection.play(stream, { type: "opus" })
-	console.log(`playing ${link}`)
-	queue.dispatcher.on("end", () => {
-		if (queue.links.length > 0) {
-			console.log("advancing to next item")
-			connect(connection, queue)
-		} else {
-			console.log("disconnect: queue ended")
-			connection.disconnect()
-		}
-	})
-}
+// async function connect(connection: VoiceConnection, queue: Queue) {
+// 	const link = queue.links.shift()
+// 	if (!link) return
+// 	const stream = await ytdl(link, { filter: "audioonly" })
+// 	queue.dispatcher = connection.play(stream, { type: "opus" })
+// 	console.log(`playing ${link}`)
+// 	queue.dispatcher.on("end", () => {
+// 		if (queue.links.length > 0) {
+// 			console.log("advancing to next item")
+// 			connect(connection, queue)
+// 		} else {
+// 			console.log("disconnect: queue ended")
+// 			connection.disconnect()
+// 		}
+// 	})
+// }
