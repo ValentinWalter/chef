@@ -16,26 +16,26 @@ export class VolumeCommand extends Command {
 			group: "oper",
 			memberName: "volume",
 			guildOnly: true,
-			description: "stellt die laustärke ein",
-			args: [
-				{
-					key: "volume",
-					prompt: "setz eine lautstärke",
-					type: "integer",
-				},
-			],
+			description: "stellt die laustärke ein (1-100)",
 		})
 	}
 
 	run(
 		message: Commando.CommandoMessage,
-		args: { volume: number }
+		...args: unknown[]
 	): Promise<Commando.CommandoMessage> {
+		// eslint-disable-next-line @typescript-eslint/ban-types
+		const number: Number = Number(args[0])
 		const queue = this.chef.queues.get(message.guild.id)
 		if (!queue) return message.say("keine queue vorhanden")
-		const volume = args.volume.clamp(0, 100)
-		if ((volume || volume === 0) && Number.isInteger(volume))
+		if (number || args[0] === "0") {
+			const volume = Math.round(number.clamp(0, 100))
 			queue?.connection.dispatcher.setVolume(volume / 100)
-		return message.say(`🔊 ${(queue?.connection.dispatcher.volume * 100).toFixed(0)}`)
+		}
+		return message.say(`🔊 ${(queue.connection.dispatcher.volume * 100).toFixed(0)}`)
 	}
+}
+
+Number.prototype.clamp = function (min: number, max: number): number {
+	return Math.min(Math.max(this.valueOf(), min), max)
 }

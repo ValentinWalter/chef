@@ -5,5 +5,5 @@
 //
 
 interface Number {
-    clamp(min: number, max: number): number
+	clamp: (min: number, max: number) => number
 }
