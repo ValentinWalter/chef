@@ -2,10 +2,6 @@
 node_modules/
 package-lock.json
 build/
-<<<<<<< Updated upstream
-*.code-workspace
-=======
 *.code-workspace
 .vscode
 .DS_store
->>>>>>> Stashed changes

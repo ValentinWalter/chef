@@ -35,7 +35,7 @@ class VolumeCommand extends command_1.default {
         const volume = args.volume.clamp(0, 100);
         if ((volume || volume === 0) && Number.isInteger(volume))
             queue?.connection.dispatcher.setVolume(volume / 100);
-        return message.say(`🔊: ${(queue?.connection.dispatcher.volume * 100).toFixed(0)}`);
+        return message.say(`🔊 ${(queue?.connection.dispatcher.volume * 100).toFixed(0)}`);
     }
 }
 exports.VolumeCommand = VolumeCommand;
