@@ -42,10 +42,12 @@ export class BlackjackCommand extends Command {
 	): Promise<Commando.CommandoMessage> {
 		this.bet = args.bet
 
+		// See if player already has a running session
 		const storedSessions = this.chef.sessions.get(message.author.id)
 		if (storedSessions) {
-			return this.errorMessage("spiel zu ende du unwürdiger", message)
+			return this.chef.errorMessage("spiel zu ende du unwürdiger", message)
 		} else {
+			// Create new session for this blackjack game
 			const game = new Blackjack.Game()
 			const member = message.member ?? undefined
 			this.session = new GameSession(game, member)
@@ -54,15 +56,15 @@ export class BlackjackCommand extends Command {
 
 		try {
 			// Act out current game stage
-			const results = await this.playCurrentStage(message)
+			const embed = await this.playCurrentStage(message)
 			// Delete entry at end
 			this.chef.sessions.delete(message.author.id)
 			// Display end result
-			return message.say(this.gameFinishEmbed(results[0], results[1]))
+			return message.say(embed)
 		} catch (error) {
 			this.chef.sessions.delete(message.author.id)
 			if (error == "timeout")
-				return this.errorMessage(
+				return this.chef.errorMessage(
 					"chef ist eingeschlafen während er auf dich gewartet hat",
 					message
 				)
@@ -73,7 +75,7 @@ export class BlackjackCommand extends Command {
 
 	private async playCurrentStage(
 		originalMessage: Discord.Message
-	): Promise<[conclusion: string, color: number]> {
+	): Promise<Discord.MessageEmbed> {
 		const state = this.session.game.getState()
 		const game = this.session.game
 		switch (state.stage) {
@@ -83,18 +85,24 @@ export class BlackjackCommand extends Command {
 				return await this.playCurrentStage(originalMessage)
 			}
 			case "player-turn-right": {
-				const embed = this.playerTurnEmbed()
-				if (!this.session.message) {
-					const embedMessage = await originalMessage.channel.send(embed)
-					this.session.message = embedMessage
-				} else {
-					this.session.message.edit(embed)
-				}
+				// if (!this.session.message) {
+				// 	const embedMessage = await originalMessage.channel.send(embed)
+				// 	this.session.message = embedMessage
+				// } else {
+				// 	this.session.message.edit(embed)
+				// }
 
+				// Display current state
+				const embed = this.playerTurnEmbed()
+				const embedMessage = await originalMessage.channel.send(embed)
+				this.session.message = embedMessage
+
+				// Await player input
 				const filter = (message: Discord.Message) => {
-					const commands = ["hit", "stay", "double"]
+					const commands = ["hit", "stay", "split", "double", "insurance"]
 					const isCommand = commands.includes(message.content)
-					const isPlayer = message.author.id == originalMessage.author.id
+					const isPlayer =
+						message.author.id == this.session.member?.user.id
 					return isCommand && isPlayer
 				}
 				const inputs = await originalMessage.channel.awaitMessages(filter, {
@@ -104,6 +112,7 @@ export class BlackjackCommand extends Command {
 				const input = inputs.first()
 				if (!input) throw "timeout"
 
+				// Act on player input
 				switch (input.content) {
 					case "hit":
 						game.dispatch(actions.hit({ position: "right" }))
@@ -111,11 +120,22 @@ export class BlackjackCommand extends Command {
 					case "stay":
 						game.dispatch(actions.stand({ position: "right" }))
 						break
+					case "split":
+						// game.dispatch(actions.split())
+						input.reply("funkt leider noch nicht")
+						break
 					case "double":
 						game.dispatch(actions.double({ position: "right" }))
 						break
+					case "insurance":
+						// game.dispatch(actions.insurance({ bet: this.bet / 2 }))
+						input.reply("funkt leider noch nicht")
+						break
 				}
 
+				input.react("👍")
+
+				// Play next stage
 				return await this.playCurrentStage(input)
 			}
 			case "player-turn-left": {
@@ -128,43 +148,11 @@ export class BlackjackCommand extends Command {
 				throw "dealer-turn is an invalid stage"
 			}
 			case "done": {
-				let conclusion = ""
-				let color = 0x000
-				if (state.dealerHasBlackjack) {
-					// Dealer has blackjack
-					conclusion = `Chef hat Blackjack! Du verlierst **${state.finalBet}** Gulden!`
-					color = Constants.colors.red
-				} else if (state.handInfo.right.playerHasBlackjack) {
-					// Player has blackjack
-					conclusion = `**Blackjack!** Du gewinnst **${state.finalBet}** Gulden!`
-					color = Constants.colors.green
-				} else if (state.dealerHasBusted) {
-					// Dealer busted
-					conclusion = `Dealer busted! Du gewinnst **${state.finalBet}** Gulden!`
-					color = Constants.colors.green
-				} else if (state.handInfo.right.playerHasBusted) {
-					// Player busted
-					conclusion = `Busted! Du verlierst **${state.finalBet}** Gulden!`
-					color = Constants.colors.red
-				} else if (
-					state.handInfo.right.playerValue.hi == state.dealerValue.hi
-				) {
-					// Tie
-					conclusion = `Gleichstand… Niemand gewinnt nichts ~`
-					color = Constants.colors.gray
-				} else if (
-					state.handInfo.right.playerValue.hi > state.dealerValue.hi
-				) {
-					// Player has higher value than dealer
-					conclusion = `Du gewinnst **${state.finalBet}** Gulden!`
-					color = Constants.colors.green
-				} else {
-					// Dealer has higher value than player
-					conclusion = `Du verlierst **${state.finalBet}** Gulden!`
-					color = Constants.colors.red
-				}
-
-				return [conclusion, color]
+				const rightHand = state.handInfo.right
+				const leftHand = state.handInfo.left
+				const [right, color] = this.getConclusionForHand(rightHand, state)
+				const [left] = this.getConclusionForHand(leftHand, state)
+				return this.gameFinishEmbed(right ?? "error", left, color)
 			}
 			default: {
 				throw "unknown stage"
@@ -174,12 +162,8 @@ export class BlackjackCommand extends Command {
 
 	private playerTurnEmbed(): Discord.MessageEmbed {
 		const state = this.session.game.getState()
-		const hand = state.handInfo.right
+		const hand = state.handInfo
 		const cards = this.getCards()
-		const playerCards = cards.player
-			.map((card) => this.toString(card))
-			.join(" — ")
-		const dealerCards = `${this.toString(cards.dealer[0])}`
 
 		const embed = new Discord.MessageEmbed()
 			.setTitle(`Blackjack für ${state.initialBet} Gulden`)
@@ -187,15 +171,28 @@ export class BlackjackCommand extends Command {
 				this.session.member?.displayName,
 				this.session.member?.user.avatarURL() ?? undefined
 			)
-			.setDescription("Antworte mit **hit**, **stay** oder **double**.")
-			.addField(
-				"Deine Karten",
-				`${playerCards}
-				Gesamt: ${hand.playerValue.hi}`
+			.setDescription(
+				"Antworte mit **hit**, **stay**, **split**, **double** oder **insurance**."
 			)
 			.addField(
+				"Deine rechte Hand",
+				`${cards.player.right}
+				Gesamt: ${hand.right.playerValue.hi}`,
+				true
+			)
+
+		if (cards.player.left)
+			embed.addField(
+				"Deine linke Hand",
+				`${cards.player.left}
+				Gesamt: ${hand.left.playerValue.hi}`,
+				true
+			)
+
+		embed
+			.addField(
 				"Chef (Dealer)",
-				`${dealerCards} — ??
+				`${cards.dealer} — ??
 				Gesamt: ${this.session.game.getState().dealerValue.hi}`
 			)
 			.setColor(Constants.colors.yellow)
@@ -204,34 +201,47 @@ export class BlackjackCommand extends Command {
 	}
 
 	private gameFinishEmbed(
-		conclusion: string,
-		color: number
+		conclusionRight: string,
+		conclusionLeft?: string,
+		color = 0x000
 	): Discord.MessageEmbed {
 		const state = this.session.game.getState()
-		const hand = state.handInfo.right
+		const hand = state.handInfo
 		const cards = this.getCards()
-		const playerCards = cards.player
-			.map((card) => this.toString(card))
-			.join(" — ")
-		const dealerCards = cards.dealer
-			.map((card) => this.toString(card))
-			.join(" — ")
 
+		// Create embed
 		const embed = new Discord.MessageEmbed()
-			.setTitle("Blackjack")
 			.setAuthor(
 				this.session.member?.displayName,
 				this.session.member?.user.avatarURL() ?? undefined
 			)
-			.setDescription(conclusion)
-			.addField(
-				"Deine Karten",
-				`${playerCards}
-				Gesamt: ${hand.playerValue.hi}`
-			)
+			.setDescription(conclusionRight)
+
+		// Add left hand conclusion if it exists
+		// if (conclusionLeft) embed.addField(conclusionLeft, "\u200b", true)
+
+		// Add spacer and right hand info
+		embed.addField(
+			"Deine rechte Hand",
+			`${cards.player.right}
+				Gesamt: ${hand.right.playerValue.hi}`,
+			true
+		)
+
+		// Add left hand info if it exists
+		// if (cards.player.left)
+		// 	embed.addField(
+		// 		"Deine link Hand",
+		// 		`${cards.player.left}
+		// 		Gesamt: ${hand.left.playerValue.hi}`,
+		// 		true
+		// 	)
+
+		// Add dealer info if it exists
+		embed
 			.addField(
 				"Chef (Dealer)",
-				`${dealerCards}
+				`${cards.dealer}
 				Gesamt: ${state.dealerValue.hi}`
 			)
 			.setColor(color)
@@ -239,26 +249,75 @@ export class BlackjackCommand extends Command {
 		return embed
 	}
 
-	private errorMessage(
-		error: string,
-		message: Commando.CommandoMessage
-	): Promise<Commando.CommandoMessage> {
-		const embed = new Discord.MessageEmbed()
-			.setAuthor(
-				message.member?.displayName,
-				message.author.displayAvatarURL()
-			)
-			.setTitle(error)
-			.setColor(Constants.colors.red)
-		return message.say(embed)
+	getConclusionForHand(
+		hand: Blackjack.Hand,
+		state: Blackjack.State
+	): [conclusion?: string, color?: number] {
+		if (!hand.playerValue) return [undefined, undefined]
+
+		let conclusion = ""
+		let color = 0x000
+
+		if (hand.playerValue.hi == state.dealerValue.hi) {
+			// Push
+			conclusion = `Push… Niemand gewinnt nichts ~`
+			color = Constants.colors.gray
+		} else if (state.dealerHasBlackjack) {
+			// Dealer has blackjack
+			conclusion = `Chef hat Blackjack! Du verlierst **${state.finalBet}** Gulden!`
+			color = Constants.colors.red
+		} else if (hand.playerHasBlackjack) {
+			// Player has blackjack
+			conclusion = `**Blackjack!** Du gewinnst **${state.finalBet}** Gulden!`
+			color = Constants.colors.green
+		} else if (state.dealerHasBusted) {
+			// Dealer busted
+			conclusion = `Dealer busted! Du gewinnst **${state.finalBet}** Gulden!`
+			color = Constants.colors.green
+		} else if (hand.playerHasBusted) {
+			// Player busted
+			conclusion = `Busted! Du verlierst **${state.finalBet}** Gulden!`
+			color = Constants.colors.red
+		} else if (hand.playerValue.hi > state.dealerValue.hi) {
+			// Player has higher value than dealer
+			conclusion = `Du gewinnst **${state.finalBet}** Gulden!`
+			color = Constants.colors.green
+		} else {
+			// Dealer has higher value than player
+			conclusion = `Du verlierst **${state.finalBet}** Gulden!`
+			color = Constants.colors.red
+		}
+
+		return [conclusion, color]
 	}
 
 	private getCards(): Cards {
 		const { handInfo, dealerCards } = this.session.game.getState()
 
+		let right: string | undefined
+		let left: string | undefined
+
+		if (handInfo.right.cards)
+			right = handInfo.right.cards
+				.map((card) => this.toCustomCardType(card))
+				.map((card) => this.toString(card))
+				.join(" — ")
+
+		if (handInfo.left.cards)
+			left = handInfo.left.cards
+				.map((card) => this.toCustomCardType(card))
+				.map((card) => this.toString(card))
+				.join(" — ")
+
 		return {
-			player: handInfo.right.cards.map((card) => this.toCustomCardType(card)),
-			dealer: dealerCards.map((card) => this.toCustomCardType(card)),
+			player: {
+				right: right,
+				left: left,
+			},
+			dealer: dealerCards
+				.map((card) => this.toCustomCardType(card))
+				.map((card) => this.toString(card))
+				.join(" — "),
 		}
 	}
 
@@ -290,8 +349,11 @@ export class BlackjackCommand extends Command {
 }
 
 type Cards = {
-	player: Card[]
-	dealer: Card[]
+	player: {
+		right?: string
+		left?: string
+	}
+	dealer: string
 }
 
 type Card = {
