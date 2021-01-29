@@ -5,7 +5,7 @@
 	"main": "dist/index.js",
 	"scripts": {
 		"install": "tsc",
-		"start": "tsc && node dist/index.js",
+		"start": "tsc && node --trace-warnings dist/index.js",
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"lint": "npx eslint source/ --ext .js,.jsx,.ts,.tsx",
 		"fix": "npx eslint source/ --fix --ext .js,.jsx,.ts,.tsx"
@@ -32,6 +32,7 @@
 		"bufferutil": "^4.0.3",
 		"discord.js": "^12.5.1",
 		"discord.js-commando": "github:discordjs/Commando",
+		"engine-blackjack-ts": "git+https://github.com/ValentinWalter/engine-blackjack-ts.git",
 		"erlpack": "github:discord/erlpack",
 		"libsodium-wrappers": "^0.7.8",
 		"simple-youtube-api": "^5.2.1",
