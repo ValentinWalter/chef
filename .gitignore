@@ -1,6 +1,10 @@
-.env
+# directories
 node_modules/
-package-lock.json
-build/
-*.code-workspace
+dist/
+
+# files
+.env
+.vscode
 .DS_store
+package-lock.json
+*.code-workspace
