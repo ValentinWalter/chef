@@ -4,9 +4,6 @@
 // Copyright (c) Valentin Walter 2021
 //
 
-import Dotenv from "dotenv"
-Dotenv.config()
-
 import Path from "path"
 import Chef from "./struct/chef"
 
