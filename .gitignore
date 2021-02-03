@@ -5,6 +5,6 @@ dist/
 # files
 .env
 .vscode
-.DS_store
+.DS_Store
 package-lock.json
 *.code-workspace
