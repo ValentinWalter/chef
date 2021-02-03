@@ -10,11 +10,13 @@ import * as Blackjack from "engine-blackjack-ts"
 import Commando from "discord.js-commando"
 import Queue from "./queue"
 import Constants from "../struct/constants"
+import Restaurant from "../struct/restaurant"
 
 export default class Chef extends Commando.CommandoClient {
 	readonly youtube: YouTube
 	readonly queues: Collection<string, Queue>
 	readonly sessions: Collection<string, GameSession>
+	readonly restaurant = new Restaurant()
 
 	constructor(options?: Commando.CommandoClientOptions) {
 		super(options)
@@ -28,10 +30,7 @@ export default class Chef extends Commando.CommandoClient {
 		message: Commando.CommandoMessage
 	): Promise<Commando.CommandoMessage> {
 		const embed = new Discord.MessageEmbed()
-			.setAuthor(
-				message.member?.displayName,
-				message.author.displayAvatarURL()
-			)
+			.setAuthor(message.member?.displayName, message.author.displayAvatarURL())
 			.setTitle(error)
 			.setColor(Constants.colors.red)
 		return message.say(embed)

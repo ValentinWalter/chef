@@ -29,6 +29,7 @@
 	},
 	"dependencies": {
 		"@discordjs/opus": "^0.3.3",
+		"airtable": "^0.10.1",
 		"bufferutil": "^4.0.3",
 		"discord.js": "^12.5.1",
 		"discord.js-commando": "github:discordjs/Commando",

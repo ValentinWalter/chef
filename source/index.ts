@@ -5,10 +5,10 @@
 //
 
 import Dotenv from "dotenv"
+Dotenv.config()
+
 import Path from "path"
 import Chef from "./struct/chef"
-
-Dotenv.config()
 
 const chef = new Chef({
 	commandPrefix: ".",
