@@ -22,8 +22,7 @@ export class PauseCommand extends Command {
 
 	run(message: Commando.CommandoMessage): Promise<Commando.CommandoMessage> {
 		const queue = this.chef.queues.get(message.guild.id)
-		if (!queue?.connection.dispatcher)
-			return message.say("nichts zum pausieren du aff")
+		if (!queue?.connection.dispatcher) return message.say("nichts zum pausieren")
 		queue.connection.dispatcher.pause()
 		message.react("👍")
 		return message.say("pausiert")

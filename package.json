@@ -31,7 +31,7 @@
 		"bufferutil": "^4.0.3",
 		"discord.js": "^12.5.1",
 		"discord.js-commando": "github:discordjs/Commando",
-		"engine-blackjack-ts": "git+https://github.com/ValentinWalter/engine-blackjack-ts.git",
+		"engine-blackjack-ts": "git+https://github.com/TimTheToaster/engine-blackjack-ts",
 		"erlpack": "github:discord/erlpack",
 		"libsodium-wrappers": "^0.7.8",
 		"simple-youtube-api": "^5.2.1",

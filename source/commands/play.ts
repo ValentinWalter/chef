@@ -27,7 +27,7 @@ export class PlayCommand extends Command {
 			args: [
 				{
 					key: "query",
-					prompt: "ich brauch ein video du aff",
+					prompt: "ich brauch ein video",
 					type: "string",
 				},
 			],
